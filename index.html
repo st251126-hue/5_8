@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2.5次元歌い手推し活のセカイ - 画面越しの声が、日常を照らす。</title>
+    <title>2.5次元推し活シミュレーター - 画面越しの推しが、日常を照らす。</title>
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -15,17 +15,31 @@
     
     <style>
         /* =========================================
-           CSS Variables (テーマカラー設定)
+           CSS Variables (テーマカラー設定 / 動的変更)
            ========================================= */
         :root {
             --color-pink: #ff8fb3;
             --color-purple: #b388ff;
             --color-blue: #80d8ff;
-            --color-bg-gray: #f9fafb;
+            --color-yellow: #fef08a;
+            --color-green: #86efac;
+
+            /* アクティブな「推し色」のデフォルト（ピンク） */
+            --oshi-color-primary: var(--color-pink);
+            --oshi-color-dark: #be185d;
+            --oshi-color-soft: #fdf2f8;
+            --oshi-color-glow: rgba(255, 143, 179, 0.4);
+
+            --color-bg-gray: #f3f4f6;
             --color-text-main: #1f2937;
             --color-text-muted: #4b5563;
             --color-white: #ffffff;
             --font-main: '"M PLUS Rounded 1c"', sans-serif;
+            
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -1px rgba(0,0,0,0.04);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+            --shadow-glow: 0 0 20px var(--oshi-color-glow);
         }
 
         /* =========================================
@@ -35,9 +49,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        }
-        html {
-            scroll-behavior: smooth;
+            -webkit-tap-highlight-color: transparent;
         }
         body {
             font-family: var(--font-main);
@@ -47,812 +59,1468 @@
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
         }
-        a {
-            text-decoration: none;
-            color: inherit;
+        button, input {
+            font-family: inherit;
         }
-        img, svg {
-            display: block;
-        }
-        .container {
-            max-width: 1152px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
-        /* =========================================
-           Typography & Utils
-           ========================================= */
-        .gradient-text {
-            background: linear-gradient(135deg, var(--color-pink), var(--color-purple));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            display: inline-block;
-        }
-        .br-desktop { display: none; }
-
-        /* =========================================
-           Navigation
-           ========================================= */
-        .navbar {
-            position: fixed;
-            width: 100%;
-            top: 0;
-            z-index: 50;
-            height: 64px;
-            transition: all 0.3s ease;
-        }
-        .navbar.glass {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        .navbar.scrolled {
-            background: var(--color-white);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        .nav-content {
+        
+        /* アプリ全体のコンテナレイアウト */
+        .app-wrapper {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 100%;
+            flex-direction: column;
+            min-height: 100vh;
+            max-width: 480px; /* スマホライクなコンテナに制限して操作性を上げる */
+            margin: 0 auto;
+            background-color: #fafafa;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            position: relative;
         }
-        .nav-brand {
+
+        /* =========================================
+           Header (すりガラス効果)
+           ========================================= */
+        .app-header {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+        }
+        .header-logo {
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 1.25rem;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--oshi-color-dark);
+        }
+        .header-logo i {
+            color: var(--oshi-color-primary);
+            filter: drop-shadow(0 0 4px var(--oshi-color-glow));
+        }
+        
+        .oshi-selector-btn {
+            background: var(--oshi-color-soft);
+            border: 1px solid var(--oshi-color-primary);
+            color: var(--oshi-color-dark);
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.75rem;
             font-weight: 700;
-            transition: opacity 0.2s;
-        }
-        .nav-brand:hover {
-            opacity: 0.8;
-        }
-        .nav-brand i { color: var(--color-pink); }
-        
-        .nav-links {
-            display: flex;
-            gap: 32px;
-        }
-        .nav-links a {
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: color 0.2s;
-        }
-        .nav-links a:nth-child(1):hover { color: var(--color-pink); }
-        .nav-links a:nth-child(2):hover { color: var(--color-purple); }
-        .nav-links a:nth-child(3):hover { color: var(--color-blue); }
-        .nav-links a:nth-child(4):hover { color: var(--color-pink); }
-
-        .mobile-menu-btn {
-            display: none;
-            background: none;
-            border: none;
             cursor: pointer;
-            color: var(--color-text-muted);
-        }
-        
-        .mobile-menu {
-            display: none;
-            position: absolute;
-            top: 64px;
-            left: 0;
-            width: 100%;
-            background: var(--color-white);
-            border-top: 1px solid #f3f4f6;
-            flex-direction: column;
-            padding: 8px 0;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        .mobile-menu.active { display: flex; }
-        .mobile-menu a {
-            padding: 12px 24px;
-            font-weight: 500;
-            color: var(--color-text-main);
-        }
-        .mobile-menu a:hover {
-            background: var(--color-bg-gray);
-            color: var(--color-pink);
-        }
-
-        /* =========================================
-           Hero Section
-           ========================================= */
-        .hero {
-            position: relative;
-            min-height: 100vh;
             display: flex;
             align-items: center;
-            justify-content: center;
-            padding-top: 64px;
-            overflow: hidden;
-        }
-        .hero-bg {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, #fce7f3 0%, #f3e8ff 50%, #e0f2fe 100%);
-            opacity: 0.8;
-            z-index: 0;
-        }
-        .hero-content {
-            position: relative;
-            z-index: 10;
-            text-align: center;
-            max-width: 800px;
-            padding: 0 20px;
-            animation: fadeInUp 0.8s ease-out forwards;
-        }
-        .hero-badge {
-            display: inline-block;
-            padding: 4px 16px;
-            border-radius: 999px;
-            background: var(--color-white);
-            color: var(--color-pink);
-            font-size: 0.875rem;
-            font-weight: 700;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            margin-bottom: 24px;
-        }
-        .hero-title {
-            font-size: 3.5rem;
-            font-weight: 800;
-            line-height: 1.2;
-            margin-bottom: 24px;
-        }
-        .hero-desc {
-            font-size: 1.125rem;
-            color: var(--color-text-muted);
-            margin-bottom: 40px;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .btn-primary {
-            display: inline-block;
-            padding: 16px 32px;
-            background: #111827;
-            color: var(--color-white);
-            border-radius: 999px;
-            font-weight: 700;
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            gap: 4px;
             transition: all 0.2s;
         }
-        .btn-primary:hover {
-            background: #1f2937;
-            transform: translateY(-2px);
-        }
-        
-        .floating-icon { position: absolute; opacity: 0.5; animation: bounceSlow 3s infinite; }
-        .icon-1 { top: 25%; left: 10%; color: var(--color-pink); animation-delay: 0s; }
-        .icon-2 { bottom: 25%; right: 10%; color: var(--color-purple); animation-delay: 1s; }
-        .icon-3 { top: 33%; right: 25%; color: var(--color-blue); animation-delay: 0.5s; }
-
-        .scroll-down {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            animation: bounce 2s infinite;
-            color: #9ca3af;
-            transition: color 0.2s;
-        }
-        .scroll-down:hover { color: var(--color-text-muted); }
 
         /* =========================================
-           Sections Common
+           Dynamic App Background Block
            ========================================= */
-        .section { padding: 96px 0; }
-        .bg-white { background-color: var(--color-white); }
-        
-        .section-header {
+        .app-content {
+            flex-grow: 1;
+            padding: 16px;
+            padding-bottom: 80px; /* フッターナビ用スペース */
+            overflow-y: auto;
+        }
+
+        /* アプリ画面の非表示クラス */
+        .app-page {
+            display: none;
+            animation: fadeInPage 0.3s ease-out forwards;
+        }
+        .app-page.active {
+            display: block;
+        }
+
+        /* =========================================
+           Page 1: HOME (Dashboard)
+           ========================================= */
+        .home-hero {
+            background: linear-gradient(135deg, var(--oshi-color-soft), #fff);
+            border-radius: 20px;
+            padding: 20px;
             text-align: center;
-            margin-bottom: 64px;
-        }
-        .section-title {
-            font-size: 2.25rem;
-            font-weight: 700;
             margin-bottom: 16px;
-        }
-        .section-subtitle {
-            color: var(--color-text-muted);
-            margin-bottom: 24px;
-        }
-        .section-line {
-            width: 64px;
-            height: 4px;
-            border-radius: 2px;
-            margin: 0 auto;
-        }
-        .line-pink { background: var(--color-pink); }
-        .line-purple { background: var(--color-purple); }
-        .line-blue { background: var(--color-blue); }
-
-        /* =========================================
-           About Section
-           ========================================= */
-        .about-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 48px;
-            align-items: center;
-        }
-        .about-visual {
-            aspect-ratio: 16 / 9;
-            background: linear-gradient(to top right, #fbcfe8, #ffedd5);
-            border-radius: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            border: 1px solid rgba(0,0,0,0.03);
+            box-shadow: var(--shadow-sm);
             position: relative;
             overflow: hidden;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
         }
-        .about-visual-bg {
-            position: absolute;
-            inset: 0;
+        .home-avatar-container {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--oshi-color-primary);
+            margin: 0 auto 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0.2;
-            transition: transform 0.7s;
-        }
-        .about-visual:hover .about-visual-bg { transform: scale(1.1); }
-        .about-visual-bg svg { width: 256px; height: 256px; color: #ec4899; }
-        
-        .about-card {
+            font-size: 2.5rem;
+            border: 4px solid #fff;
+            box-shadow: var(--shadow-md);
             position: relative;
-            z-index: 10;
-            background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(4px);
-            padding: 24px;
-            border-radius: 16px;
-            text-align: center;
         }
-        .about-card h3 { font-size: 1.5rem; margin-bottom: 8px; }
-        .about-card p { font-size: 0.875rem; color: var(--color-text-muted); }
-
-        .about-text h3 { font-size: 1.5rem; margin-bottom: 16px; line-height: 1.4; }
-        .about-text p { color: var(--color-text-muted); margin-bottom: 24px; }
-        
-        .tags { display: flex; flex-wrap: wrap; gap: 12px; }
-        .tag { padding: 8px 16px; border-radius: 999px; font-size: 0.875rem; font-weight: 500; }
-        .tag-pink { background: #fdf2f8; color: #be185d; }
-        .tag-purple { background: #faf5ff; color: #7e22ce; }
-        .tag-blue { background: #eff6ff; color: #1d4ed8; }
-        .tag-green { background: #f0fdf4; color: #15803d; }
-
-        /* =========================================
-           Benefits Section
-           ========================================= */
-        .benefits-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 32px;
+        .status-badge {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: #ef4444;
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 999px;
+            border: 2px solid #fff;
+            animation: pulse 1.5s infinite;
         }
-        .benefit-card {
-            background: var(--color-white);
-            padding: 32px;
-            border-radius: 24px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            transition: all 0.3s;
+        .home-title {
+            font-size: 1.15rem;
+            font-weight: 800;
+            margin-bottom: 4px;
         }
-        .benefit-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
-        }
-        .benefit-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 24px;
-        }
-        .icon-bg-pink { background: #fce7f3; color: #ec4899; }
-        .icon-bg-purple { background: #f3e8ff; color: #a855f7; }
-        .icon-bg-blue { background: #e0f2fe; color: #3b82f6; }
-        
-        .benefit-card h3 { font-size: 1.25rem; margin-bottom: 12px; }
-        .benefit-card p { font-size: 0.875rem; color: var(--color-text-muted); }
-
-        /* =========================================
-           Misconceptions (FAQ) Section
-           ========================================= */
-        .faq-list {
-            max-width: 800px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-        .faq-item {
-            border: 1px solid #e5e7eb;
-            border-radius: 16px;
-            padding: 24px;
-            transition: border-color 0.3s;
-        }
-        .faq-item:nth-child(1):hover { border-color: var(--color-blue); }
-        .faq-item:nth-child(2):hover { border-color: var(--color-pink); }
-        .faq-item:nth-child(3):hover { border-color: var(--color-purple); }
-        
-        .faq-title {
-            display: flex;
-            align-items: center;
-            font-size: 1.125rem;
-            font-weight: 700;
+        .home-subtitle {
+            font-size: 0.75rem;
+            color: var(--color-text-muted);
             margin-bottom: 12px;
         }
-        .faq-title i { margin-right: 8px; }
-        .faq-item:nth-child(1) .faq-title i { color: #3b82f6; }
-        .faq-item:nth-child(2) .faq-title i { color: #ec4899; }
-        .faq-item:nth-child(3) .faq-title i { color: #a855f7; }
-
-        .faq-answer {
-            color: var(--color-text-muted);
-            padding-left: 32px;
-            border-left: 4px solid;
-        }
-        .faq-item:nth-child(1) .faq-answer { border-color: #e0f2fe; }
-        .faq-item:nth-child(2) .faq-answer { border-color: #fce7f3; }
-        .faq-item:nth-child(3) .faq-answer { border-color: #f3e8ff; }
-
-        /* =========================================
-           Howto Section
-           ========================================= */
-        .howto-section {
+        .home-bubble {
+            background: #fff;
+            border-radius: 12px;
+            padding: 10px 16px;
+            font-size: 0.85rem;
             position: relative;
-            background: #111827;
-            color: var(--color-white);
-            padding: 96px 0;
-            overflow: hidden;
-            text-align: center;
+            border: 1px solid rgba(0,0,0,0.04);
+            display: inline-block;
+            max-width: 90%;
+            box-shadow: var(--shadow-sm);
         }
-        .howto-pattern {
+        .home-bubble::after {
+            content: '';
             position: absolute;
-            inset: 0;
-            background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAzNHYtNGgtMnY0aC00djJoNHY0aDJ2LTRoNHYtMmgtNHptMC0zMFYwaC0ydjRoLTR2Mmg0djRoMnYtNGg0VjRoLTR6TTM2IDY0di00aC0ydjRoLTR2Mmg0djRoMnYtNGg0di0yaC00ek0xOCAxOHYtNGgtMnY0aC00djJoNHY0aDJ2LTRoNHYtMmgtNHptMCAzMHYtNGgtMnY0aC00djJoNHY0aDJ2LTRoNHYtMmgtNHoiIGZpbGw9IiM5Y2EyYWIiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvZz48L3N2Zz4=');
-            opacity: 0.5;
-            z-index: 0;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 0 8px 8px;
+            border-style: solid;
+            border-color: transparent transparent #fff;
         }
-        .howto-content {
-            position: relative;
-            z-index: 10;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        .howto-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 24px;
-        }
-        .howto-desc {
-            font-size: 1.125rem;
-            color: #d1d5db;
-            margin-bottom: 40px;
-        }
-        
-        .steps {
-            display: flex;
-            justify-content: center;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-        .step-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 16px;
-            padding: 24px;
+
+        /* アクションカード */
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
-            gap: 16px;
-            text-align: left;
-            flex: 1;
-            min-width: 250px;
+            gap: 6px;
+            color: var(--color-text-main);
         }
-        .step-num {
-            width: 48px;
-            height: 48px;
+        .app-card {
+            background: var(--color-white);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(0,0,0,0.02);
+        }
+        .btn-action {
+            width: 100%;
+            background: var(--oshi-color-primary);
+            color: var(--oshi-color-dark);
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 10px var(--oshi-color-glow);
+        }
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px var(--oshi-color-glow);
+        }
+
+        /* 配信スケジュール風リスト */
+        .schedule-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px dashed rgba(0,0,0,0.06);
+        }
+        .schedule-item:last-child {
+            border-bottom: none;
+        }
+        .schedule-time {
+            font-size: 0.8rem;
+            font-weight: 800;
+            background: #e5e7eb;
+            padding: 2px 8px;
+            border-radius: 6px;
+            color: var(--color-text-muted);
+            min-width: 54px;
+            text-align: center;
+        }
+        .schedule-time.active {
+            background: #fecaca;
+            color: #ef4444;
+        }
+        .schedule-text {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* =========================================
+           Page 2: LIVE ROOM (疑似配信)
+           ========================================= */
+        .live-video-sim {
+            background: #111827;
+            aspect-ratio: 16 / 9;
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 12px;
+        }
+        .live-overlay-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+        .live-badge-red {
+            background: #ef4444;
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            animation: pulse 1.5s infinite;
+        }
+        .live-viewers {
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        /* 配信画面風ビジュアライザーアニメーション */
+        .live-visualizer {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle, rgba(31,41,55,0.7) 0%, rgba(17,24,39,1) 100%);
+        }
+        .oshi-sprite {
+            font-size: 4rem;
+            filter: drop-shadow(0 0 15px var(--oshi-color-primary));
+            animation: bounceSlow 2.5s infinite ease-in-out;
+            position: relative;
+            z-index: 2;
+        }
+        .visualizer-bars {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 40px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            padding: 0 10px;
+            opacity: 0.4;
+        }
+        .bar {
+            width: 4%;
+            background: var(--oshi-color-primary);
+            border-radius: 2px 2px 0 0;
+            height: 10%;
+            animation: barJump 1s ease-in-out infinite alternate;
+        }
+        /* 各バーのディレイを設定 */
+        .bar:nth-child(2n) { animation-delay: 0.2s; }
+        .bar:nth-child(3n) { animation-delay: 0.4s; }
+        .bar:nth-child(4n) { animation-delay: 0.1s; }
+        .bar:nth-child(5n) { animation-delay: 0.5s; }
+
+        /* スパチャ演出用コンテナ */
+        .sc-notification-area {
+            position: absolute;
+            top: 45px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            z-index: 15;
+            pointer-events: none;
+        }
+        .sc-bubble-toast {
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideDownFade 3s forwards;
+        }
+
+        /* チャット表示エリア */
+        .live-chat-area {
+            background: #1f2937;
+            border-radius: 16px;
+            height: 250px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        .live-chat-messages {
+            flex-grow: 1;
+            padding: 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.8rem;
+        }
+        
+        /* ユーザーチャット入力バー */
+        .chat-input-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #111827;
+            border-top: 1px solid #374151;
+        }
+        .chat-input-bar input {
+            flex-grow: 1;
+            background: #374151;
+            border: none;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            outline: none;
+        }
+        .chat-input-bar input::placeholder {
+            color: #9ca3af;
+        }
+        .btn-send {
+            background: var(--oshi-color-primary);
+            color: var(--oshi-color-dark);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .btn-send:active {
+            transform: scale(0.9);
+        }
+
+        /* スパチャ支援ボタン群 */
+        .support-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .btn-support {
+            flex: 1;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: background 0.2s;
+        }
+        .btn-support:hover {
+            background: var(--oshi-color-soft);
+        }
+
+        /* =========================================
+           Page 3: RHYTHM GAME (コール＆ペンライト)
+           ========================================= */
+        .game-screen {
+            background: #111827;
+            border-radius: 20px;
+            padding: 16px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            height: 380px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 700;
+            z-index: 5;
+        }
+        .combo-counter {
+            font-size: 1.5rem;
+            color: var(--color-yellow);
+            font-weight: 800;
+            text-shadow: 0 0 10px rgba(254, 240, 138, 0.6);
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.1s;
+        }
+        .combo-counter.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* ノーツ落下エリア */
+        .notes-track {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 220px;
+            z-index: 1;
+        }
+        .rhythm-target {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            box-shadow: 0 0 15px rgba(255,255,255,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: 800;
+            z-index: 2;
+        }
+        .note-element {
+            position: absolute;
+            top: 0;
+            left: calc(50% - 15px);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--oshi-color-primary);
+            box-shadow: 0 0 12px var(--oshi-color-glow);
+            animation: noteFall 1.8s linear forwards;
+        }
+
+        /* ゲーム操作フッター */
+        .game-controls {
+            z-index: 5;
+        }
+        .btn-shake {
+            background: linear-gradient(135deg, var(--oshi-color-primary), var(--oshi-color-dark));
+            color: white;
+            border: none;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            font-size: 0.8rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 0 15px var(--oshi-color-glow);
+            margin: 0 auto 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: transform 0.1s;
+        }
+        .btn-shake:active {
+            transform: scale(0.9);
+        }
+        
+        .hit-rating {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #10b981;
+            margin-bottom: 4px;
+            height: 24px;
+        }
+
+        /* =========================================
+           Page 4: QUIZ DIAGNOSIS (推しタイプ診断)
+           ========================================= */
+        .diag-app-box {
+            background: #fff;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid rgba(0,0,0,0.02);
+            min-height: 360px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* =========================================
+           Page 5: MEMO & CALENDAR (手帳)
+           ========================================= */
+        .memo-input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .memo-input-group input {
+            flex-grow: 1;
+            border: 1px solid #e5e7eb;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+        .memo-input-group input:focus {
+            border-color: var(--oshi-color-primary);
+        }
+        .btn-add-memo {
+            background: #111827;
+            color: #fff;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .memo-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .memo-item {
+            background: var(--color-white);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+            border-left: 4px solid var(--oshi-color-primary);
+        }
+        .memo-text {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .btn-del-memo {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .btn-del-memo:hover { color: #ef4444; }
+
+        /* =========================================
+           Oshi Change Selection Modal
+           ========================================= */
+        .oshi-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .oshi-modal.active {
+            display: flex;
+        }
+        .oshi-modal-content {
+            background: #fff;
+            border-radius: 24px;
+            padding: 24px;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: var(--shadow-lg);
+        }
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .oshi-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .oshi-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+        .oshi-option:hover {
+            border-color: #d1d5db;
+        }
+        .oshi-option.selected {
+            border-color: var(--p-color);
+            background: var(--p-bg);
+        }
+        .oshi-opt-avatar {
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.25rem;
-            font-weight: 700;
-            flex-shrink: 0;
-        }
-        .num-pink { background: #ec4899; }
-        .num-purple { background: #a855f7; }
-        .num-blue { background: #3b82f6; }
-        
-        .step-text h4 { font-size: 1.125rem; margin-bottom: 4px; }
-        .step-text p { font-size: 0.875rem; color: #9ca3af; }
-        
-        .howto-msg {
-            margin-top: 48px;
-            font-size: 1.25rem;
-            font-weight: 700;
+            color: #fff;
         }
 
         /* =========================================
-           Footer
+           Bottom Navigation Bar
            ========================================= */
-        .footer {
-            background: #111827;
-            color: #9ca3af;
-            padding: 48px 0;
-            border-top: 1px solid #1f2937;
-            text-align: center;
-        }
-        .footer-brand {
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 64px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border-top: 1px solid rgba(0,0,0,0.06);
             display: flex;
+            justify-content: space-around;
             align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--color-white);
-            margin-bottom: 24px;
+            z-index: 40;
         }
-        .footer-brand i { color: var(--color-pink); }
-        .footer-desc { margin-bottom: 24px; font-size: 0.875rem; }
-        .footer-socials {
+        .nav-item {
             display: flex;
-            justify-content: center;
-            gap: 24px;
-            margin-bottom: 32px;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--color-text-muted);
+            font-size: 0.65rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: color 0.2s;
+            border: none;
+            background: none;
+            padding: 4px 8px;
         }
-        .footer-socials a { transition: color 0.2s; }
-        .footer-socials a:hover { color: var(--color-white); }
-        .footer-copy { font-size: 0.75rem; }
+        .nav-item i {
+            font-size: 1.25rem;
+            transition: transform 0.2s;
+        }
+        .nav-item.active {
+            color: var(--oshi-color-dark);
+        }
+        .nav-item.active i {
+            transform: translateY(-2px);
+            color: var(--oshi-color-primary);
+            filter: drop-shadow(0 0 3px var(--oshi-color-glow));
+        }
 
         /* =========================================
-           Animations
+           Keyframes & Animations
            ========================================= */
-        .reveal {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.8s ease-out;
-        }
-        .reveal.active {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
+        @keyframes fadeInPage {
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes bounce {
-            0%, 100% { transform: translateY(-25%); animation-timing-function: cubic-bezier(0.8,0,1,1); }
-            50% { transform: none; animation-timing-function: cubic-bezier(0,0,0.2,1); }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
         }
         @keyframes bounceSlow {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-20px); }
+            50% { transform: translateY(-12px); }
         }
-
-        /* =========================================
-           Media Queries (Responsive)
-           ========================================= */
-        @media (min-width: 768px) {
-            .br-desktop { display: inline; }
-            .hero-title { font-size: 4rem; }
-            .howto-title { font-size: 3rem; }
+        @keyframes barJump {
+            from { height: 10%; }
+            to { height: 90%; }
         }
-        
-        @media (max-width: 767px) {
-            .nav-links { display: none; }
-            .mobile-menu-btn { display: block; }
-            
-            .hero-title { font-size: 2.25rem; }
-            .hero-desc { font-size: 1rem; }
-            
-            .about-grid { grid-template-columns: 1fr; }
-            .benefits-grid { grid-template-columns: 1fr; }
-            
-            .steps { flex-direction: column; }
-            
-            .section { padding: 64px 0; }
-            .section-title { font-size: 1.75rem; }
+        @keyframes slideDownFade {
+            0% { transform: translate(-50%, -10px); opacity: 0; }
+            15% { transform: translate(-50%, 0); opacity: 1; }
+            85% { transform: translate(-50%, 0); opacity: 1; }
+            100% { transform: translate(-50%, -10px); opacity: 0; }
+        }
+        @keyframes noteFall {
+            0% { top: 0; opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 180px; opacity: 0; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Navigation -->
-    <nav class="navbar glass" id="navbar">
-        <div class="container">
-            <div class="nav-content">
-                <a href="#" class="nav-brand">
-                    <i data-lucide="headphones"></i>
-                    <span>2.5次元推し活のセカイ</span>
-                </a>
-                <div class="nav-links">
-                    <a href="#about">2.5次元グループとは？</a>
-                    <a href="#benefits">2.5次元推しの魅力</a>
-                    <a href="#misconceptions">よくある誤解</a>
-                    <a href="#howto">始め方</a>
-                </div>
-                <!-- Mobile menu button -->
-                <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Menu">
-                    <i data-lucide="menu"></i>
-                </button>
-            </div>
-        </div>
-        <!-- Mobile menu panel -->
-        <div id="mobile-menu" class="mobile-menu">
-            <a href="#about">2.5次元グループとは？</a>
-            <a href="#benefits">2.5次元推しの魅力</a>
-            <a href="#misconceptions">よくある誤解</a>
-            <a href="#howto">始め方</a>
-        </div>
-    </nav>
-
-    <!-- Hero Section -->
-    <section class="hero">
-        <div class="hero-bg"></div>
+    <div class="app-wrapper">
         
-        <!-- Floating decorative elements -->
-        <div class="floating-icon icon-1"><i data-lucide="mic-vocal" width="48" height="48"></i></div>
-        <div class="floating-icon icon-2"><i data-lucide="headphones" width="64" height="64"></i></div>
-        <div class="floating-icon icon-3"><i data-lucide="music" width="40" height="40"></i></div>
-
-        <div class="hero-content">
-            <span class="hero-badge">Welcome to 2.5D Utaite World</span>
-            <h1 class="hero-title">
-                画面越しから届く声が、<br class="br-desktop" />
-                <span class="gradient-text">私の日常を照らす。</span>
-            </h1>
-            <p class="hero-desc">
-                「2.5次元歌い手グループ」の推し活。<br>
-                2次元の親しみやすさと、3次元のリアルな熱量。彼らの歌声と楽しい配信が、何気ない毎日を特別なものに変えてくれます。
-            </p>
-            <a href="#about" class="btn-primary">2.5次元推し活を知る</a>
-        </div>
-        
-        <a href="#about" class="scroll-down" aria-label="Scroll down">
-            <i data-lucide="chevron-down" width="32" height="32"></i>
-        </a>
-    </section>
-
-    <!-- What is Oshikatsu? -->
-    <section id="about" class="section bg-white">
-        <div class="container">
-            <div class="section-header reveal">
-                <h2 class="section-title">2.5次元歌い手グループとは？</h2>
-                <div class="section-line line-pink"></div>
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <i data-lucide="headphones"></i>
+                <span>推し活セカイ App</span>
             </div>
+            <button id="btn-open-oshi-modal" class="oshi-selector-btn">
+                <span id="header-oshi-avatar">👑</span>
+                <span id="header-oshi-name">プリンス</span>
+            </button>
+        </header>
 
-            <div class="about-grid">
-                <div class="reveal">
-                    <div class="about-visual">
-                         <div class="about-visual-bg">
-                             <i data-lucide="mic-vocal"></i>
-                         </div>
-                         <div class="about-card">
-                             <h3>2次元と3次元を<br>行き来する存在</h3>
-                             <p>イラストとリアル、両方の魅力</p>
-                         </div>
+        <!-- Main Content (Dynamic Page Switching) -->
+        <main class="app-content">
+
+            <!-- PAGE 1: HOME -->
+            <section id="page-home" class="app-page active">
+                <div class="home-hero">
+                    <div class="home-avatar-container">
+                        <span id="hero-oshi-avatar">👑</span>
+                        <span class="status-badge">LIVE!</span>
+                    </div>
+                    <h2 id="hero-oshi-name" class="home-title">クールブルー・プリンス</h2>
+                    <p class="home-subtitle">本日配信：20:00〜 雑談配信</p>
+                    <div class="home-bubble">
+                        <p id="hero-oshi-welcome">「今日も来てくれてありがとう。一緒に特別な時間にしようね」</p>
                     </div>
                 </div>
-                <div class="about-text reveal" style="transition-delay: 100ms;">
-                    <h3>ネット発信からリアルライブまで<br>活動の幅は無限大！</h3>
-                    <p>
-                        普段は魅力的な「イラスト（2次元）」の姿で、YouTubeやツイキャスなどで「歌ってみた」動画の投稿や、ゲーム実況・雑談などの生配信を行います。
-                    </p>
-                    <p>
-                        しかし、実際のライブイベント（3次元）では、リアルな姿でステージに立ち、熱い歌とダンスのパフォーマンスを披露します。この「2つの世界」を併せ持つのが最大の魅力です！
-                    </p>
-                    <div class="tags">
-                        <span class="tag tag-pink">#歌ってみた</span>
-                        <span class="tag tag-purple">#生配信</span>
-                        <span class="tag tag-blue">#ゲーム実況</span>
-                        <span class="tag tag-green">#リアルライブ</span>
+
+                <div class="app-card">
+                    <div class="card-title">
+                        <i data-lucide="radio" style="color:#ef4444;"></i>
+                        <span>ライブ配信スタート！</span>
+                    </div>
+                    <button class="btn-action" onclick="switchPage('live')">
+                        <i data-lucide="play-circle"></i>
+                        <span>配信ルームに入る</span>
+                    </button>
+                </div>
+
+                <div class="app-card">
+                    <div class="card-title">
+                        <i data-lucide="calendar" style="color:var(--oshi-color-dark);"></i>
+                        <span>本日の予定</span>
+                    </div>
+                    <div class="schedule-item">
+                        <span class="schedule-time">18:00</span>
+                        <span class="schedule-text">新作歌ってみた動画 投稿！</span>
+                    </div>
+                    <div class="schedule-item">
+                        <span class="schedule-time active">20:00</span>
+                        <span class="schedule-text">生放送雑談（大事なお知らせ有り）</span>
                     </div>
                 </div>
-            </div>
-        </div>
-    </section>
+            </section>
 
-    <!-- Benefits / Appeal -->
-    <section id="benefits" class="section">
-        <div class="container">
-            <div class="section-header reveal">
-                <h2 class="section-title">2.5次元推し活ならではの魅力</h2>
-                <p class="section-subtitle">歌声と楽しいトークが、日々の生活に元気をくれます。</p>
-                <div class="section-line line-purple"></div>
-            </div>
-
-            <div class="benefits-grid">
-                <!-- Benefit 1 -->
-                <div class="benefit-card reveal">
-                    <div class="benefit-icon icon-bg-pink">
-                        <i data-lucide="radio" width="28" height="28"></i>
+            <!-- PAGE 2: LIVE ROOM -->
+            <section id="page-live" class="app-page">
+                <div class="live-video-sim">
+                    <div class="live-overlay-info">
+                        <span class="live-badge-red">● LIVE</span>
+                        <span class="live-viewers">同接 3.2万</span>
                     </div>
-                    <h3>毎日の配信が生きがいに</h3>
-                    <p>
-                        グループや個人での生配信が頻繁にあるため、コメントを通じてリアルタイムにコミュニケーションが取れます。「今日も配信があるから頑張ろう！」と日々の活力が生まれます。
-                    </p>
-                </div>
+                    
+                    <!-- スパチャ等の演出エリア -->
+                    <div id="sc-area" class="sc-notification-area"></div>
 
-                <!-- Benefit 2 -->
-                <div class="benefit-card reveal" style="transition-delay: 100ms;">
-                    <div class="benefit-icon icon-bg-purple">
-                        <i data-lucide="sparkles" width="28" height="28"></i>
+                    <!-- ビジュアライザー & スプライト -->
+                    <div class="live-visualizer">
+                        <div id="live-oshi-sprite" class="oshi-sprite">👑</div>
+                        <div class="visualizer-bars">
+                            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                        </div>
                     </div>
-                    <h3>最高の「ギャップ萌え」</h3>
-                    <p>
-                        普段の配信ではワチャワチャと面白くて親しみやすいのに、歌動画やライブステージになると圧倒的にかっこいい。そんな「ギャップ」に一度ハマると抜け出せません。
-                    </p>
                 </div>
 
-                <!-- Benefit 3 -->
-                <div class="benefit-card reveal" style="transition-delay: 200ms;">
-                    <div class="benefit-icon icon-bg-blue">
-                        <i data-lucide="users" width="28" height="28"></i>
+                <!-- チャットボックス -->
+                <div class="live-chat-area">
+                    <div id="live-chat-messages" class="live-chat-messages"></div>
+                    <form id="chat-form" class="chat-input-bar">
+                        <input type="text" id="chat-input" placeholder="推しにメッセージを送る..." autocomplete="off">
+                        <button type="submit" class="btn-send">
+                            <i data-lucide="send" width="14" height="14"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 支援ボタン -->
+                <div class="support-actions">
+                    <button class="btn-support" onclick="sendSuperChat(1000)">
+                        <i data-lucide="heart" style="color:#ef4444;fill:#ef4444;"></i>
+                        <span>応援投銭 (赤スパ)</span>
+                    </button>
+                    <button class="btn-support" onclick="sendSuperChat(500)">
+                        <i data-lucide="star" style="color:#f59e0b;fill:#f59e0b;"></i>
+                        <span>スター (黄スパ)</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- PAGE 3: RHYTHM GAME -->
+            <section id="page-rhythm" class="app-page">
+                <div class="game-screen">
+                    <div class="game-header">
+                        <span id="game-rating-txt">RHYTHM GAME</span>
+                        <span>SCORE: <span id="game-score">0</span></span>
                     </div>
-                    <h3>一緒に成長の軌跡を歩める</h3>
-                    <p>
-                        ネットの小さな配信から始まり、武道館やドームといった大きなステージへ。リスナー（ファン）と推しが団結して夢を叶えていく過程を、一番近くで応援できます。
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
 
-    <!-- Misconceptions (FAQ format) -->
-    <section id="misconceptions" class="section bg-white">
-        <div class="container">
-            <div class="section-header reveal">
-                <h2 class="section-title">2.5次元グループの「よくある誤解」</h2>
-                <div class="section-line line-blue"></div>
-            </div>
+                    <!-- コンボ -->
+                    <div id="combo-display" class="combo-counter">0 COMBO!</div>
 
-            <div class="faq-list">
-                <!-- FAQ 1 -->
-                <div class="faq-item reveal">
-                    <h3 class="faq-title">
-                        <i data-lucide="help-circle" width="24" height="24"></i>
-                        ただのアニメキャラクターなの？
-                    </h3>
-                    <p class="faq-answer">
-                        いいえ、キャラクターの向こう側には「実在する個性豊かな本人」がいます。台本のない生配信での素のリアクションや、リアルライブでの息遣い・熱気を感じられるのが大きな違いです。
-                    </p>
-                </div>
+                    <!-- ノーツ落下用のトラック -->
+                    <div id="notes-track" class="notes-track">
+                        <div id="target-circle" class="rhythm-target">TAP!</div>
+                    </div>
 
-                <!-- FAQ 2 -->
-                <div class="faq-item reveal" style="transition-delay: 100ms;">
-                    <h3 class="faq-title">
-                        <i data-lucide="help-circle" width="24" height="24"></i>
-                        若い学生向けのコンテンツでしょ？
-                    </h3>
-                    <p class="faq-answer">
-                        年齢層は非常に幅広いです！本格的なオリジナル楽曲や、高い歌唱力に惹かれてファンになる大人世代（20代〜50代以上）のリスナーも多数います。親子でライブに参戦する方も多いですよ。
-                    </p>
-                </div>
-
-                <!-- FAQ 3 -->
-                <div class="faq-item reveal" style="transition-delay: 200ms;">
-                    <h3 class="faq-title">
-                        <i data-lucide="help-circle" width="24" height="24"></i>
-                        ライブに行かないとファンとは言えない？
-                    </h3>
-                    <p class="faq-answer">
-                        そんなことはありません！YouTubeでの「歌ってみた」視聴や、無料の生配信を楽しむだけでも立派な推し活です。自分のペースで、心地よい距離感で応援できるのがネット発グループの魅力です。
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- How to Start -->
-    <section id="howto" class="howto-section">
-        <div class="howto-pattern"></div>
-        
-        <div class="howto-content reveal">
-            <h2 class="howto-title">まずは、その「声」を聴いてみませんか？</h2>
-            <p class="howto-desc">
-                少しでも気になったら、YouTubeを開くだけで新しい世界が待っています。<br>
-                彼らの歌声やトークが、あなたの日常を少しだけ明るくしてくれるはずです。
-            </p>
-            
-            <div class="steps">
-                <div class="step-card">
-                    <div class="step-num num-pink">1</div>
-                    <div class="step-text">
-                        <h4>「歌ってみた」を聴く</h4>
-                        <p>好きな曲のカバーから探してみる</p>
+                    <!-- ゲーム操作 -->
+                    <div class="game-controls">
+                        <div id="hit-rating" class="hit-rating">READY?</div>
+                        <button class="btn-shake" id="btn-shake">
+                            <i data-lucide="lightbulb" width="24" height="24"></i>
+                            <span>振る！</span>
+                        </button>
                     </div>
                 </div>
                 
-                <div class="step-card">
-                    <div class="step-num num-purple">2</div>
-                    <div class="step-text">
-                        <h4>生配信に参加する</h4>
-                        <p>作業用BGMとしてラジオ感覚で聴く</p>
+                <div class="app-card" style="margin-top:16px;">
+                    <p style="font-size:0.75rem; color:var(--color-text-muted); text-align:center;">
+                        ※「振る！」ボタンをノーツが真ん中のターゲットに重なる瞬間にタイミングよくタップしよう！
+                    </p>
+                </div>
+            </section>
+
+            <!-- PAGE 4: DIAGNOSIS -->
+            <section id="page-diag" class="app-page">
+                <div class="diag-app-box">
+                    <div>
+                        <div class="card-title">
+                            <i data-lucide="sparkles" style="color:var(--color-purple);"></i>
+                            <span>推しタイプ診断</span>
+                        </div>
+                        <p style="font-size:0.8rem; color:var(--color-text-muted); margin-bottom:16px;">
+                            3つの質問に答えて、あなたの隠れた「本当の推し属性」を診断しましょう。
+                        </p>
+                    </div>
+                    
+                    <div id="app-quiz-screen" class="diag-screen" style="border:none; background:#f9fafb;">
+                        <!-- JSにて描画 -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- PAGE 5: MEMO & SCHEDULE -->
+            <section id="page-memo" class="app-page">
+                <div class="app-card">
+                    <div class="card-title">
+                        <i data-lucide="book-open" style="color:var(--color-blue-dark);"></i>
+                        <span>推し活自由帳</span>
+                    </div>
+                    <p style="font-size:0.8rem; color:var(--color-text-muted); margin-bottom:12px;">
+                        配信の感想や、発売予定のグッズメモ、次のライブの持ち物などをメモしておこう！
+                    </p>
+                    <div class="memo-input-group">
+                        <input type="text" id="memo-input" placeholder="例：明日発売のグッズを買う！">
+                        <button class="btn-add-memo" onclick="addMemo()">保存</button>
+                    </div>
+                    <div id="memo-list" class="memo-list">
+                        <!-- メモがここに挿入されます -->
                     </div>
                 </div>
 
-                <div class="step-card">
-                    <div class="step-num num-blue">3</div>
-                    <div class="step-text">
-                        <h4>リアルライブに参戦</h4>
-                        <p>いつか、実際の姿とその熱気を体感する</p>
+                <div class="app-card">
+                    <div class="card-title">
+                        <i data-lucide="help-circle" style="color:var(--oshi-color-dark);"></i>
+                        <span>推し活初心者ガイド</span>
                     </div>
+                    <p style="font-size:0.8rem; color:var(--color-text-muted); margin-bottom:8px; line-height:1.5;">
+                        <b>Q. 2.5次元とは？</b><br>
+                        ネット上では可愛い・カッコいいアニメ調イラスト（2次元）の姿で活動し、リアルのイベントやドームライブ（3次元）では実際の姿を届けるアーティストのことです。
+                    </p>
+                    <p style="font-size:0.8rem; color:var(--color-text-muted); line-height:1.5;">
+                        <b>Q. ライブに行けなくてもファン？</b><br>
+                        もちろん！家でYouTubeの「歌ってみた」を再生したり、コメントを送って楽しむだけでも立派な推し活です。自分のペースが一番です！
+                    </p>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Dynamic Modal: Oshi Selection -->
+        <div id="oshi-modal" class="oshi-modal">
+            <div class="oshi-modal-content">
+                <h3 class="modal-title">あなたの「推し」を選択</h3>
+                <div id="oshi-options-container" class="oshi-list">
+                    <!-- 推しオプションがJSによって動的に生成されます -->
                 </div>
             </div>
-            
-            <p class="howto-msg">
-                画面越しの出会いが、かけがえのない宝物になりますように！
-            </p>
         </div>
-    </section>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-brand">
-                <i data-lucide="headphones"></i>
-                <span>2.5次元推し活のセカイ</span>
-            </div>
-            <p class="footer-desc">推し活の魅力を広め、多様な価値観を尊重し合える社会を目指して。</p>
-            <div class="footer-socials">
-                <a href="#" aria-label="Twitter"><i data-lucide="twitter"></i></a>
-                <a href="#" aria-label="Instagram"><i data-lucide="instagram"></i></a>
-                <a href="#" aria-label="Link"><i data-lucide="link"></i></a>
-            </div>
-            <p class="footer-copy">&copy; 2026 推し活のセカイ Project. All rights reserved.</p>
-        </div>
-    </footer>
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="switchPage('home')">
+                <i data-lucide="home"></i>
+                <span>ホーム</span>
+            </button>
+            <button class="nav-item" onclick="switchPage('live')">
+                <i data-lucide="tv"></i>
+                <span>配信</span>
+            </button>
+            <button class="nav-item" onclick="switchPage('rhythm')">
+                <i data-lucide="sparkles"></i>
+                <span>応援</span>
+            </button>
+            <button class="nav-item" onclick="switchPage('diag')">
+                <i data-lucide="search"></i>
+                <span>診断</span>
+            </button>
+            <button class="nav-item" onclick="switchPage('memo')">
+                <i data-lucide="calendar"></i>
+                <span>手帳</span>
+            </button>
+        </nav>
 
+    </div>
+
+    <!-- Script Block -->
     <script>
-        // Initialize Lucide icons
-        lucide.createIcons();
-
-        // Navbar scroll effect
-        const navbar = document.getElementById('navbar');
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 20) {
-                navbar.classList.add('scrolled');
-                navbar.classList.remove('glass');
-            } else {
-                navbar.classList.remove('scrolled');
-                navbar.classList.add('glass');
+        /* =========================================
+           DATA: Oshi Member Information
+           ========================================= */
+        const oshiMembers = {
+            cool: {
+                id: 'cool',
+                name: 'クールブルー・プリンス',
+                avatar: '👑',
+                color: '#80d8ff',
+                colorDark: '#1d4ed8',
+                colorSoft: '#eff6ff',
+                welcome: '「今日も来てくれてありがとう。一緒に特別な時間にしようね」',
+                chatReaction: '「みんなのコメント見てるよ。…ふふ、いつもありがとう」',
+                scReaction: '「素晴らしい応援をありがとう！キミのために歌い続けるよ」'
+            },
+            cute: {
+                id: 'cute',
+                name: '元気いっぱい・ストロベリー',
+                avatar: '🍓',
+                color: '#ff8fb3',
+                colorDark: '#be185d',
+                colorSoft: '#fdf2f8',
+                welcome: '「おっはよー！今日も元気にテンション上げていっちゃうよー！」',
+                chatReaction: '「わーい！たくさんコメントありがとう！めっちゃ嬉しい！」',
+                scReaction: '「うおおお！スーパーチャットありがとう！これでおやつ買うね！笑」'
+            },
+            mystic: {
+                id: 'mystic',
+                name: 'ミステリアス・シャドウ',
+                avatar: '🔮',
+                color: '#b388ff',
+                colorDark: '#7e22ce',
+                colorSoft: '#faf5ff',
+                welcome: '「…やぁ、来てくれたんだ。キミに見せる闇の歌声、聴き逃さないでね」',
+                chatReaction: '「ふーん、そんなに見つめられると、イタズラしたくなっちゃうな」',
+                scReaction: '「贅沢な贈り物をどうも。お返しに、とっておきの秘密を教えてあげる」'
+            },
+            sun: {
+                id: 'sun',
+                name: 'ひだまり・シャイン',
+                avatar: '☀️',
+                color: '#fef08a',
+                colorDark: '#a16207',
+                colorSoft: '#fefce8',
+                welcome: '「やあ！みんなの日だまり、シャインだよ！今日も笑顔を届けるよ！」',
+                chatReaction: '「今日もぽかぽかハッピーにいこうね！コメントありがとう！」',
+                scReaction: '「ひゃー！まぶしいくらいの応援ありがとう！勇気が100倍湧いてきた！」'
             }
-        });
+        };
 
-        // Mobile menu toggle
-        const btn = document.getElementById('mobile-menu-btn');
-        const menu = document.getElementById('mobile-menu');
+        let currentOshi = oshiMembers.cool; // デフォルトはクール
 
-        btn.addEventListener('click', () => {
-            menu.classList.toggle('active');
-        });
+        /* =========================================
+           SYSTEM: App Theme Customizer
+           ========================================= */
+        function applyOshiTheme(oshi) {
+            currentOshi = oshi;
+            const root = document.documentElement;
+            root.style.setProperty('--oshi-color-primary', oshi.color);
+            root.style.setProperty('--oshi-color-dark', oshi.colorDark);
+            root.style.setProperty('--oshi-color-soft', oshi.colorSoft);
+            root.style.setProperty('--oshi-color-glow', oshi.color + '66'); // 40% opacity glow
 
-        // Close mobile menu on link click
-        menu.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', () => {
-                menu.classList.remove('active');
-            });
-        });
+            // ヘッダーやホーム画面の要素を更新
+            document.getElementById('header-oshi-avatar').innerText = oshi.avatar;
+            document.getElementById('header-oshi-name').innerText = oshi.name.split('・')[1] || oshi.name;
+            
+            document.getElementById('hero-oshi-avatar').innerText = oshi.avatar;
+            document.getElementById('hero-oshi-name').innerText = oshi.name;
+            document.getElementById('hero-oshi-welcome').innerText = oshi.welcome;
 
-        // Scroll reveal animation
-        function reveal() {
-            var reveals = document.querySelectorAll(".reveal");
-            var windowHeight = window.innerHeight;
-            for (var i = 0; i < reveals.length; i++) {
-                var elementTop = reveals[i].getBoundingClientRect().top;
-                var elementVisible = 100;
-                if (elementTop < windowHeight - elementVisible) {
-                    reveals[i].classList.add("active");
-                }
+            // ライブ配信画面のスプライトを更新
+            document.getElementById('live-oshi-sprite').innerText = oshi.avatar;
+
+            // テーマ適用に合わせてUIを再着色
+            lucide.createIcons();
+        }
+
+        /* =========================================
+           NAVIGATION: Page Switching
+           ========================================= */
+        function switchPage(pageId) {
+            // すべてのページを非表示にする
+            const pages = document.querySelectorAll('.app-page');
+            pages.forEach(p => p.classList.remove('active'));
+
+            // 対象ページを表示
+            const activePage = document.getElementById(`page-${pageId}`);
+            if (activePage) activePage.classList.add('active');
+
+            // ナビゲーションボタンのアクティブ状態更新
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => item.classList.remove('active'));
+
+            // 押し色ナビゲーション変更
+            const matchingBtn = Array.from(navItems).find(item => item.getAttribute('onclick').includes(pageId));
+            if (matchingBtn) matchingBtn.classList.add('active');
+
+            // 特殊イベント処理
+            if (pageId === 'rhythm') {
+                startGame();
+            } else {
+                stopGame();
             }
         }
-        window.addEventListener("scroll", reveal);
-        reveal(); // Trigger on initial load
+
+        /* =========================================
+           MODAL: Oshi Selector Configuration
+           ========================================= */
+        const oshiModal = document.getElementById('oshi-modal');
+        const oshiOptionsContainer = document.getElementById('oshi-options-container');
+
+        // モーダル表示イベント
+        document.getElementById('btn-open-oshi-modal').addEventListener('click', () => {
+            renderOshiOptions();
+            oshiModal.classList.add('active');
+        });
+
+        // モーダルの背景クリックで閉じる
+        oshiModal.addEventListener('click', (e) => {
+            if (e.target === oshiModal) oshiModal.classList.remove('active');
+        });
+
+        function renderOshiOptions() {
+            oshiOptionsContainer.innerHTML = '';
+            Object.values(oshiMembers).forEach(member => {
+                const isSelected = member.id === currentOshi.id;
+                const option = document.createElement('button');
+                option.className = `oshi-option ${isSelected ? 'selected' : ''}`;
+                option.style.setProperty('--p-color', member.color);
+                option.style.setProperty('--p-bg', member.colorSoft);
+                option.innerHTML = `
+                    <div class="oshi-opt-avatar" style="background: ${member.colorDark}">${member.avatar}</div>
+                    <div style="flex-grow:1;">
+                        <div style="font-weight: 800; font-size: 0.9rem;">${member.name}</div>
+                        <div style="font-size: 0.7rem; color: var(--color-text-muted);">テーマ：${member.avatar}</div>
+                    </div>
+                `;
+                option.onclick = () => {
+                    applyOshiTheme(member);
+                    oshiModal.classList.remove('active');
+                };
+                oshiOptionsContainer.appendChild(option);
+            });
+        }
+
+        /* =========================================
+           LIVE: Simulation & Simulated Interactive Chats
+           ========================================= */
+        const liveChatMessages = document.getElementById('live-chat-messages');
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const scArea = document.getElementById('sc-area');
+
+        const fanUserNames = ["あき", "ゆな", "しょう", "そらち", "推ししか勝たん", "マシュマロ", "はるるん", "koko", "りおん", "おにぎり"];
+        const fanMessages = [
+            "うた最高すぎる！", "この声きくと元気でるーーー", "衣装かわいい！", "天才、ここにあり！",
+            "尊すぎて語彙力失う", "ライブのチケット当てたいな", "雑談たすかる", "ウインクして！",
+            "歌ってみたヘビロテしてるよ", "神回確定！"
+        ];
+
+        function addLiveChat(user, text, isUser = false, isSc = false) {
+            const initial = user.charAt(0);
+            const msgColor = isUser ? 'var(--oshi-color-primary)' : '#4b5563';
+            
+            let messageHtml = '';
+            if (isSc) {
+                messageHtml = `
+                    <div class="chat-msg" style="background: rgba(245, 158, 11, 0.15); border-left: 3px solid #f59e0b; padding: 4px; border-radius: 4px;">
+                        <div class="chat-avatar" style="background: #f59e0b; color: white;">💝</div>
+                        <div>
+                            <span class="chat-user" style="color: #f59e0b; font-weight:850;">${user} (SC):</span>
+                            <span class="chat-text" style="color:#fde047; font-weight:700;">${text}</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                messageHtml = `
+                    <div class="chat-msg">
+                        <div class="chat-avatar" style="background: ${msgColor}; color: white;">${initial}</div>
+                        <div>
+                            <span class="chat-user" style="${isUser ? 'color: var(--oshi-color-primary); font-weight:800;' : 'color: #9ca3af;'}">${user}:</span>
+                            <span class="chat-text">${text}</span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            liveChatMessages.insertAdjacentHTML('beforeend', messageHtml);
+            liveChatMessages.scrollTop = liveChatMessages.scrollHeight;
+
+            if (liveChatMessages.children.length > 30) {
+                liveChatMessages.removeChild(liveChatMessages.firstChild);
+            }
+        }
+
+        // リスナーの自動コメント送信
+        function autoAddFanChat() {
+            if (document.getElementById('page-live').classList.contains('active')) {
+                const randomUser = fanUserNames[Math.floor(Math.random() * fanUserNames.length)];
+                const randomText = fanMessages[Math.floor(Math.random() * fanMessages.length)];
+                addLiveChat(randomUser, randomText);
+            }
+        }
+        setInterval(autoAddFanChat, 2000);
+
+        // ユーザーコメント投稿時の処理
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            addLiveChat("あなた（ファン）", text, true);
+            chatInput.value = '';
+
+            // 1秒後に推しからお返事が届く
+            setTimeout(() => {
+                addLiveChat(currentOshi.name.split('・')[1], currentOshi.chatReaction);
+            }, 1200);
+        });
+
+        // スーパーチャット（応援投銭）機能
+        function sendSuperChat(amount) {
+            const scColor = amount === 1000 ? "#ef4444" : "#f59e0b";
+            const amountText = `¥${amount.toLocaleString()}`;
+            
+            // チャットエリアに表示
+            addLiveChat("あなた", `スパチャ応援！ [${amountText}]`, true, true);
+
+            // 画面上にトーストを流す
+            scArea.innerHTML = `
+                <div class="sc-bubble-toast" style="background: linear-gradient(90deg, ${scColor}, #b45309);">
+                    <span>💝 <b>あなた</b> が ${amountText} のスパチャを贈りました！</span>
+                </div>
+            `;
+
+            // 推しが即反応する
+            setTimeout(() => {
+                addLiveChat(currentOshi.name.split('・')[1], currentOshi.scReaction);
+            }, 1500);
+        }
+
+        /* =========================================
+           GAME: Mini Rhythm Game (応援ペンライト)
+           ========================================= */
+        let gameScore = 0;
+        let combo = 0;
+        let gameInterval = null;
+        const gameScoreEl = document.getElementById('game-score');
+        const comboDisplay = document.getElementById('combo-display');
+        const hitRatingEl = document.getElementById('hit-rating');
+        const notesTrack = document.getElementById('notes-track');
+        const btnShake = document.getElementById('btn-shake');
+
+        // ノーツを生成する
+        function spawnNote() {
+            if (!document.getElementById('page-rhythm').classList.contains('active')) return;
+            
+            const note = document.createElement('div');
+            note.className = 'note-element';
+            notesTrack.appendChild(note);
+
+            // アニメーション完了後に自動削除（ミス判定）
+            setTimeout(() => {
+                if (note && note.parentNode) {
+                    note.remove();
+                    resetCombo();
+                    showRating("MISS...", "#ef4444");
+                }
+            }, 1800);
+        }
+
+        function startGame() {
+            gameScore = 0;
+            combo = 0;
+            gameScoreEl.innerText = gameScore;
+            comboDisplay.innerText = "0 COMBO!";
+            comboDisplay.classList.remove('active');
+            hitRatingEl.innerText = "READY?";
+            hitRatingEl.style.color = "#fff";
+
+            // 1.5秒ごとにノーツを流す
+            gameInterval = setInterval(spawnNote, 1600);
+        }
+
+        function stopGame() {
+            clearInterval(gameInterval);
+            // 画面上の残存ノーツを削除
+            const activeNotes = document.querySelectorAll('.note-element');
+            activeNotes.forEach(n => n.remove());
+        }
+
+        // 応援（振る！）ボタンタップ時
+        btnShake.addEventListener('click', () => {
+            const activeNotes = document.querySelectorAll('.note-element');
+            if (activeNotes.length === 0) {
+                showRating("空振り...", "#9ca3af");
+                resetCombo();
+                return;
+            }
+
+            // 一番下の（ターゲットに最も近い）ノーツを取得
+            const oldestNote = activeNotes[0];
+            const noteTop = oldestNote.offsetTop;
+
+            // ターゲット円は top: 180px 辺りに位置する
+            const diff = Math.abs(noteTop - 150);
+
+            if (diff < 20) {
+                // パーフェクト
+                gameScore += 100;
+                combo++;
+                showRating("PERFECT!!!", "#10b981");
+                oldestNote.remove();
+            } else if (diff < 40) {
+                // グッド
+                gameScore += 50;
+                combo++;
+                showRating("GOOD!", "#f59e0b");
+                oldestNote.remove();
+            } else {
+                // タイミングが早いか遅い
+                resetCombo();
+                showRating("BAD", "#ef4444");
+            }
+
+            gameScoreEl.innerText = gameScore;
+            
+            if (combo > 0) {
+                comboDisplay.innerText = `${combo} COMBO!`;
+                comboDisplay.classList.add('active');
+            } else {
+                comboDisplay.classList.remove('active');
+            }
+        });
+
+        function showRating(text, color) {
+            hitRatingEl.innerText = text;
+            hitRatingEl.style.color = color;
+        }
+
+        function resetCombo() {
+            combo = 0;
+            comboDisplay.classList.remove('active');
+        }
+
+        /* =========================================
+           DIAGNOSIS: App Interactive Quiz
+           ========================================= */
+        const appQuizData = {
+            questions: [
+                {
+                    text: "あなたが一番心地よい、推し活の「応援スタイル」は？",
+                    choices: [
+                        { text: "完璧な歌唱力やパフォーマンスに惚れ込んで、ひっそり熱く応援", score: "cool" },
+                        { text: "生配信に全力参加、チャット欄でみんなと楽しくワイワイ！", score: "cute" },
+                        { text: "深夜の静かな時間、ラジオ代わりに声を聴く大人の癒やし時間", score: "mystic" },
+                        { text: "みんなの毎日をひだまりのように元気にする明るい応援！", score: "sun" }
+                    ]
+                },
+                {
+                    text: "推しの歌にあなたが求める「感情の揺さぶられ方」は？",
+                    choices: [
+                        { text: "どこか切なくも、圧倒される美しさと気品", score: "cool" },
+                        { text: "明日からまた学校や仕事を笑顔で頑張れるようなポジティブ感", score: "cute" },
+                        { text: "少し妖しげな異世界に誘い込まれるようなスリル", score: "mystic" },
+                        { text: "ぽかぽかと心が包まれるような、ぬくもりある優しさ", score: "sun" }
+                    ]
+                }
+            ],
+            results: {
+                cool: oshiMembers.cool,
+                cute: oshiMembers.cute,
+                mystic: oshiMembers.mystic,
+                sun: oshiMembers.sun
+            }
+        };
+
+        let appQuizIndex = 0;
+        let appQuizScores = { cool: 0, cute: 0, mystic: 0, sun: 0 };
+
+        function renderAppQuiz() {
+            const container = document.getElementById('app-quiz-screen');
+            if (appQuizIndex < appQuizData.questions.length) {
+                const q = appQuizData.questions[appQuizIndex];
+                container.innerHTML = `
+                    <div class="quiz-question" style="font-size:0.95rem; margin-bottom:12px;">${appQuizIndex + 1}. ${q.text}</div>
+                    <div class="quiz-choices">
+                        ${q.choices.map(choice => `
+                            <button class="btn-choice" style="font-size:0.85rem; padding:10px 16px;" onclick="selectAppChoice('${choice.score}')">${choice.text}</button>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                showAppQuizResult();
+            }
+        }
+
+        window.selectAppChoice = function(score) {
+            appQuizScores[score]++;
+            appQuizIndex++;
+            renderAppQuiz();
+        };
+
+        function showAppQuizResult() {
+            // 最も多いスコアを決定
+            let winner = 'cool';
+            let maxScore = -1;
+            Object.keys(appQuizScores).forEach(key => {
+                if (appQuizScores[key] > maxScore) {
+                    maxScore = appQuizScores[key];
+                    winner = key;
+                }
+            });
+
+            const matchOshi = appQuizData.results[winner];
+            const container = document.getElementById('app-quiz-screen');
+
+            container.innerHTML = `
+                <div class="result-title" style="font-size:1.1rem;">おすすめの推しは…</div>
+                <div class="result-char" style="font-size:0.95rem; padding:8px 20px;">${matchOshi.avatar} ${matchOshi.name}</div>
+                <p class="result-text" style="font-size:0.8rem; line-height:1.4; margin-bottom:16px;">
+                    あなたの感性にビビッと寄り添うのは「${matchOshi.name}」です。今すぐこのメンバーを「メインの推し」としてアプリにセットしてみませんか？
+                </p>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn-retry" style="flex:1;" onclick="applyAppQuizOshi('${matchOshi.id}')">この推しを適用する</button>
+                    <button class="btn-retry" style="background:#e5e7eb; color:#1f2937;" onclick="resetAppQuiz()">やり直し</button>
+                </div>
+            `;
+        }
+
+        window.applyAppQuizOshi = function(oshiId) {
+            applyOshiTheme(oshiMembers[oshiId]);
+            switchPage('home');
+            resetAppQuiz();
+        };
+
+        window.resetAppQuiz = function() {
+            appQuizIndex = 0;
+            appQuizScores = { cool: 0, cute: 0, mystic: 0, sun: 0 };
+            renderAppQuiz();
+        };
+
+        // 初期診断ロード
+        renderAppQuiz();
+
+        /* =========================================
+           MEMO: Basic Notepad System
+           ========================================= */
+        let memos = [
+            "グッズ発売日を忘れない！",
+            "今日の生放送は20時から"
+        ];
+
+        function renderMemos() {
+            const memoList = document.getElementById('memo-list');
+            memoList.innerHTML = '';
+            memos.forEach((memo, index) => {
+                const item = document.createElement('div');
+                item.className = 'memo-item';
+                item.innerHTML = `
+                    <span class="memo-text">${memo}</span>
+                    <button class="btn-del-memo" onclick="deleteMemo(${index})">
+                        <i data-lucide="trash-2" width="16" height="16"></i>
+                    </button>
+                `;
+                memoList.appendChild(item);
+            });
+            lucide.createIcons();
+        }
+
+        function addMemo() {
+            const input = document.getElementById('memo-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            memos.push(text);
+            input.value = '';
+            renderMemos();
+        }
+
+        window.deleteMemo = function(index) {
+            memos.splice(index, 1);
+            renderMemos();
+        };
+
+        // 初期ロード
+        renderMemos();
+
+        // 最初のテーマ（クール）を適用
+        applyOshiTheme(oshiMembers.cool);
     </script>
 </body>
 </html>
